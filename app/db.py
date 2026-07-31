@@ -1,7 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from models.base import Base
+from app.models.base import Base
 
 
 engine = create_engine("sqlite://")
@@ -10,5 +10,13 @@ Base.metadata.create_all(engine)
 
 
 def get_session():
-  with Session(engine) as session:
+  session = Session(engine)
+
+  try:
     yield session
+    session.commit()
+  except:
+    session.rollback()
+    raise
+  finally:
+    session.close()
