@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from app.models import __MODELS__  # noqa: F401
 from app.models.base import Base
 
 
