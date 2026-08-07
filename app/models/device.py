@@ -1,5 +1,6 @@
 from typing import Literal, TypedDict, Union
 from uuid import uuid4
+import secrets
 from datetime import timezone, datetime
 
 from sqlalchemy import String, UUID
@@ -28,7 +29,7 @@ class Device(BaseModel):
     Union[DeviceStatus.ACTIVE_T, DeviceStatus.INACTIVE_T, DeviceStatus.ANOMALY_T]
   ] = mapped_column(String(40), default=DeviceStatus.ACTIVE, nullable=False)
   token_id: Mapped[str] = mapped_column(
-    default=lambda: str(uuid4()), unique=True, index=True
+    default=lambda: "device_token_" + secrets.token_urlsafe(64), unique=True, index=True
   )
   created_at: Mapped[datetime] = mapped_column(
     nullable=False, default=lambda: datetime.now(tz=TZ_UTC)
