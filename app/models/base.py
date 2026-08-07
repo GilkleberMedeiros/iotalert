@@ -1,40 +1,61 @@
-from sqlalchemy.orm import DeclarativeBase, Mapped, Session, mapped_column
-from sqlalchemy import select
+from sqlalchemy.orm import (
+  DeclarativeBase,
+  Session,
+  mapped_column,
+  declared_attr,
+)
+from sqlalchemy import select, BigInteger
 
 
 class Base(DeclarativeBase):
-  id: Mapped[int] = mapped_column(primary_key=True)
+  pass
 
 
-class ModelRepository[T: Base, CreateData: dict, UpdateData: dict]:
+class IDFieldMixin:
+  @declared_attr
+  def id(cls):
+    return mapped_column(BigInteger, primary_key=True, index=True)
+
+
+class BaseModel(Base, IDFieldMixin):
+  __abstract__ = True
+
+
+class ModelRepository[T: BaseModel, CreateData: dict, UpdateData: dict]:
+  model: type[T] = None
+
   def __init__(self, session: Session):
+    if self.model is None:
+      raise NotImplementedError("Subclasses must define the 'model' attribute.")
+
     self._session = session
 
   def create(self, data: list[CreateData] | CreateData) -> list[T] | T:
     if not isinstance(data, list):
       data = [data]
 
-    instances = [T(**d) for d in data]
+    instances = [self.model(**d) for d in data]
 
     self._session.add_all(instances)
 
     return instances if len(instances) > 1 else instances[0]
 
   def get(self, id) -> T | None:
-    smt = select(T).where(T.id == id)
+    model = self.model
+    smt = select(model).where(model.id == id)
 
     result = self._session.scalar(smt)
 
     return result
 
   def list(self):
-    smt = select(T)
+    smt = select(self.model)
     result = self._session.scalars(smt)
 
     return result
 
   def update(self, id, data: UpdateData) -> T:
-    instance = self._session.get_one(T, id)
+    instance = self._session.get_one(self.model, id)
 
     for k, v in data.items():
       if k == "id":
@@ -47,5 +68,5 @@ class ModelRepository[T: Base, CreateData: dict, UpdateData: dict]:
     return instance
 
   def delete(self, id):
-    instance = self._session.get_one(T, id)
+    instance = self._session.get_one(self.model, id)
     self._session.delete(instance)
