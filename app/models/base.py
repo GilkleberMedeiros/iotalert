@@ -6,12 +6,15 @@ class Base(DeclarativeBase):
   id: Mapped[int] = mapped_column(primary_key=True)
 
 
-class ModelRepository[T: Base, D: dict]:
+class ModelRepository[T: Base, CreateData: dict, UpdateData: dict]:
   def __init__(self, session: Session):
     self._session = session
 
-  def create(self, data: list[D]) -> list[T] | T:
-    instances = [T(**data) for d in data]
+  def create(self, data: list[CreateData] | CreateData) -> list[T] | T:
+    if not isinstance(data, list):
+      data = [data]
+
+    instances = [T(**d) for d in data]
 
     self._session.add_all(instances)
 
@@ -30,7 +33,7 @@ class ModelRepository[T: Base, D: dict]:
 
     return result
 
-  def update(self, id, data: D) -> T:
+  def update(self, id, data: UpdateData) -> T:
     instance = self._session.get_one(T, id)
 
     for k, v in data.items():
