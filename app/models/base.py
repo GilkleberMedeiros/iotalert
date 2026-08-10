@@ -1,25 +1,11 @@
-from sqlalchemy.orm import (
-  DeclarativeBase,
-  Session,
-  Mapped,
-  mapped_column,
-  declared_attr,
-)
-from sqlalchemy.dialects import sqlite
-from sqlalchemy import select, BigInteger
+from sqlalchemy.orm import DeclarativeBase, Session
+from sqlalchemy import select
+
+from app.models.mixins import IDFieldMixin
 
 
 class Base(DeclarativeBase):
   pass
-
-
-BigIntegerID = BigInteger().with_variant(sqlite.INTEGER(), "sqlite")
-
-
-class IDFieldMixin:
-  @declared_attr
-  def id(cls) -> Mapped[int]:
-    return mapped_column(BigIntegerID, primary_key=True, index=True, autoincrement=True)
 
 
 class BaseModel(Base, IDFieldMixin):

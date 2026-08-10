@@ -1,17 +1,15 @@
 from typing import Literal, TypedDict, Union
 from uuid import uuid4
 import secrets
-from datetime import timezone, datetime
 
 from sqlalchemy import String, UUID
 from sqlalchemy.orm import Mapped, mapped_column, validates, declared_attr
 
 from app.models.base import BaseModel, ModelRepository
+from app.models.mixins import CreatedAtFieldMixin, UpdatedAtFieldMixin
 
-TZ_UTC = timezone.utc
 
-
-class Device(BaseModel):
+class Device(BaseModel, CreatedAtFieldMixin, UpdatedAtFieldMixin):
   __tablename__ = "devices"
 
   class DeviceStatus:
@@ -31,26 +29,12 @@ class Device(BaseModel):
   token_id: Mapped[str] = mapped_column(
     default=lambda: "device_token_" + secrets.token_urlsafe(64), unique=True, index=True
   )
-  created_at: Mapped[datetime] = mapped_column(
-    nullable=False, default=lambda: datetime.now(tz=TZ_UTC)
-  )
-  updated_at: Mapped[datetime] = mapped_column(
-    nullable=False,
-    default=lambda: datetime.now(tz=TZ_UTC),
-    onupdate=lambda: datetime.now(tz=TZ_UTC),
-  )
 
   @declared_attr
   def id(cls):
     return mapped_column(
       UUID(as_uuid=True), primary_key=True, index=True, default=uuid4
     )
-
-  @validates("created_at")
-  def validate_created_at(self, key, value):
-    if isinstance(self.created_at, datetime):
-      raise ValueError("created_at cannot be modified once set.")
-    return value
 
   @validates("name", "location")
   def validate_non_empty_string(self, key, value):

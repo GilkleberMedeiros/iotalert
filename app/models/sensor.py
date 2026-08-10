@@ -1,36 +1,26 @@
 import re
 import enum
-from datetime import timezone, datetime
 from typing import TypedDict
 
 from sqlalchemy import String, Enum
 from sqlalchemy.orm import Mapped, mapped_column, validates
 
 from app.models.base import BaseModel, ModelRepository
+from app.models.mixins import CreatedAtFieldMixin
 from app.models.available_units import UNITS
 
 
-TZ_UTC = timezone.utc
 UNITS_CHOICES = UNITS.keys()
 
 UnitsEnum = enum.Enum("UnitsEnum", [c for c in UNITS_CHOICES])
 
 
-class Sensor(BaseModel):
+class Sensor(BaseModel, CreatedAtFieldMixin):
   __tablename__ = "sensor"
 
   presentation_name: Mapped[str] = mapped_column(String(255))
   key_name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
   unit: Mapped[enum.Enum] = mapped_column(Enum(UnitsEnum), nullable=False)
-  created_at: Mapped[datetime] = mapped_column(
-    nullable=False, default=lambda: datetime.now(tz=TZ_UTC)
-  )
-
-  @validates("created_at")
-  def validate_created_at(self, key, value):
-    if isinstance(self.created_at, datetime):
-      raise ValueError("created_at cannot be modified once set.")
-    return value
 
   @validates("presentation_name", "key_name")
   def validate_non_empty_string(self, key, value):
