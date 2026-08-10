@@ -144,8 +144,8 @@ UNITS["hertz"] = {
 
 def __add_docstring(item: tuple):
   v = item[1]
-  v.validate.__doc__ = _validate_func_docstring
-  v.format.__doc__ = _format_func_docstring
+  v["validate"].__doc__ = _validate_func_docstring
+  v["format"].__doc__ = _format_func_docstring
 
   return (item[0], v)
 
