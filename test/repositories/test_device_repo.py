@@ -1,14 +1,14 @@
 from datetime import datetime
-from unittest import TestCase
 
 from app.db import get_session
 from app.models.device import (
   Device,
   DeviceRepository,
 )
+from test.conftest import InMemoryDatabaseTestCase
 
 
-class TestDeviceRepository__init_instances(TestCase):
+class TestDeviceRepository__init_instances(InMemoryDatabaseTestCase):
   def setUp(self):
     with next(get_session()) as session:
       self.repo = DeviceRepository(session)
@@ -32,7 +32,7 @@ class TestDeviceRepository__init_instances(TestCase):
     return super().tearDown()
 
 
-class TestDeviceRepository_create(TestCase):
+class TestDeviceRepository_create(InMemoryDatabaseTestCase):
   def test_create_single_device(self):
     with next(get_session()) as session:
       repo = DeviceRepository(session)

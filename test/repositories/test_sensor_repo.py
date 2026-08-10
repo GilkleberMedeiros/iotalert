@@ -1,14 +1,14 @@
 from datetime import datetime
-from unittest import TestCase
 
 from app.db import get_session
 from app.models.sensor import (
   Sensor,
   SensorRepository,
 )
+from test.conftest import InMemoryDatabaseTestCase
 
 
-class TestSensorRepository__init_instances(TestCase):
+class TestSensorRepository__init_instances(InMemoryDatabaseTestCase):
   def setUp(self):
     with next(get_session()) as session:
       self.repo = SensorRepository(session)
@@ -32,7 +32,7 @@ class TestSensorRepository__init_instances(TestCase):
     return super().tearDown()
 
 
-class TestSensorRepository_create(TestCase):
+class TestSensorRepository_create(InMemoryDatabaseTestCase):
   def test_create_single_sensor(self):
     with next(get_session()) as session:
       repo = SensorRepository(session)
