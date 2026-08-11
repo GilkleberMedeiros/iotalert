@@ -1,12 +1,15 @@
-from typing import Literal, TypedDict, Union
+from typing import TYPE_CHECKING, Literal, TypedDict, Union, Set
 from uuid import uuid4
 import secrets
 
 from sqlalchemy import String, UUID
-from sqlalchemy.orm import Mapped, mapped_column, validates, declared_attr
+from sqlalchemy.orm import Mapped, mapped_column, validates, declared_attr, relationship
 
 from app.models.base import BaseModel, ModelRepository
 from app.models.mixins import CreatedAtFieldMixin, UpdatedAtFieldMixin
+
+if TYPE_CHECKING:
+  from app.models.sensor import Sensor
 
 
 class Device(BaseModel, CreatedAtFieldMixin, UpdatedAtFieldMixin):
@@ -35,6 +38,10 @@ class Device(BaseModel, CreatedAtFieldMixin, UpdatedAtFieldMixin):
     return mapped_column(
       UUID(as_uuid=True), primary_key=True, index=True, default=uuid4
     )
+
+  sensors: Mapped[Set["Sensor"]] = relationship(
+    back_populates="device", cascade="all, delete"
+  )
 
   @validates("name", "location")
   def validate_non_empty_string(self, key, value):

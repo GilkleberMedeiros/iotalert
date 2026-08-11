@@ -1,6 +1,9 @@
 from datetime import datetime
 
+from sqlalchemy import select
+
 from app.db import get_session
+from app.models.device import Device
 from app.models.sensor import (
   Sensor,
   SensorRepository,
@@ -10,19 +13,75 @@ from test.conftest import InMemoryDatabaseTestCase
 
 class TestSensorRepository__init_instances(InMemoryDatabaseTestCase):
   def setUp(self):
+    setup = super().setUp()
     with next(get_session()) as session:
       self.repo = SensorRepository(session)
+      d_status = Device.DeviceStatus
+      device_data = [
+        {"name": "Device 1", "location": "SensorRepo Tests"},
+        {
+          "name": "Device 2",
+          "location": "SensorRepo Tests",
+          "status": d_status.INACTIVE,
+        },
+      ]
+      devices = [Device(**d) for d in device_data]
+
+      session.add_all(devices)
+      session.flush()
+      self.device_ids = [d.id for d in devices]
 
       sensor_data = [
-        {"presentation_name": "Sensor 1", "key_name": "sensor_1", "unit": "celsius"},
-        {"presentation_name": "Sensor 2", "key_name": "sensor_2", "unit": "degree"},
+        {
+          "device_id": self.device_ids[0],
+          "presentation_name": "Sensor 1",
+          "key_name": "sensor_1",
+          "unit": "celsius",
+        },
+        {
+          "device_id": self.device_ids[0],
+          "presentation_name": "Sensor 2",
+          "key_name": "sensor_2",
+          "unit": "degree",
+        },
       ]
 
       sensors = self.repo.create(sensor_data)
       session.commit()  # Ensure the sensors are persisted in the session
       self.sensor_ids = [sensor.id for sensor in sensors]
 
-    return super().setUp()
+    return setup
+
+  def tearDown(self):
+    with next(get_session()) as session:
+      session.query(Sensor).delete()
+      session.query(Device).delete()
+      session.commit()
+
+    return super().tearDown()
+
+
+class TestSensorRepository_create(InMemoryDatabaseTestCase):
+  def setUp(self):
+    setup = super().setUp()
+    with next(get_session()) as session:
+      self.repo = SensorRepository(session)
+      d_status = Device.DeviceStatus
+      device_data = [
+        {"name": "Device 1", "location": "SensorRepo Tests"},
+        {
+          "name": "Device 2",
+          "location": "SensorRepo Tests",
+          "status": d_status.INACTIVE,
+        },
+      ]
+      devices = [Device(**d) for d in device_data]
+
+      session.add_all(devices)
+      session.commit()
+      self.device_ids = [d.id for d in devices]
+
+    return setup
 
   def tearDown(self):
     with next(get_session()) as session:
@@ -31,13 +90,12 @@ class TestSensorRepository__init_instances(InMemoryDatabaseTestCase):
 
     return super().tearDown()
 
-
-class TestSensorRepository_create(InMemoryDatabaseTestCase):
   def test_create_single_sensor(self):
     with next(get_session()) as session:
       repo = SensorRepository(session)
 
       sensor_data = {
+        "device_id": self.device_ids[0],
         "presentation_name": "Test Sensor",
         "key_name": "test_name",
         "unit": "celsius",
@@ -48,6 +106,8 @@ class TestSensorRepository_create(InMemoryDatabaseTestCase):
 
       self.assertIsInstance(sensor, Sensor)
       self.assertIsNotNone(sensor.id)
+      self.assertIsNotNone(sensor.device_id)
+      self.assertIsNotNone(sensor.device)  # Test back_populates
       self.assertEqual(sensor.presentation_name, sensor_data["presentation_name"])
       self.assertEqual(sensor.key_name, sensor_data["key_name"])
       # Should set status as ACTIVE by default
@@ -60,11 +120,13 @@ class TestSensorRepository_create(InMemoryDatabaseTestCase):
 
       sensors_data = [
         {
+          "device_id": self.device_ids[0],
           "presentation_name": "Test Sensor 1",
           "key_name": "test_name_1",
           "unit": "celsius",
         },
         {
+          "device_id": self.device_ids[1],
           "presentation_name": "Test Sensor 2",
           "key_name": "test_name_2",
           "unit": "kelvin",
@@ -78,6 +140,8 @@ class TestSensorRepository_create(InMemoryDatabaseTestCase):
       self.assertEqual(len(sensors), 2)
       self.assertIsInstance(sensors[0], Sensor)
       self.assertIsInstance(sensors[1], Sensor)
+      self.assertEqual(sensors[0].device_id, self.device_ids[0])
+      self.assertEqual(sensors[1].device_id, self.device_ids[1])
       self.assertEqual(
         sensors[0].presentation_name, sensors_data[0]["presentation_name"]
       )
@@ -90,6 +154,7 @@ class TestSensorRepository_create(InMemoryDatabaseTestCase):
       repo = SensorRepository(session)
 
       sensor_data1 = {
+        "device_id": self.device_ids[0],
         "presentation_name": "",  # Empty presentation_name
         "key_name": "test_key_name",
         "unit": "kelvin",
@@ -99,6 +164,7 @@ class TestSensorRepository_create(InMemoryDatabaseTestCase):
         repo.create(sensor_data1)
 
       sensor_data2 = {
+        "device_id": self.device_ids[0],
         "presentation_name": "Test Presentation Name",
         "key_name": "",  # Empty key_name
         "unit": "percentage",
@@ -108,6 +174,7 @@ class TestSensorRepository_create(InMemoryDatabaseTestCase):
         repo.create(sensor_data2)
 
       sensor_data3 = {
+        "device_id": self.device_ids[0],
         "presentation_name": "Test Presentation Name",
         "key_name": "test_key_name",
         "unit": "",  # Empty unit
@@ -121,6 +188,7 @@ class TestSensorRepository_create(InMemoryDatabaseTestCase):
       repo = SensorRepository(session)
 
       sensor_data = {
+        "device_id": self.device_ids[0],
         "presentation_name": "Test Name",
         "key_name": "^key name$",
         "unit": "degree",
@@ -134,6 +202,7 @@ class TestSensorRepository_create(InMemoryDatabaseTestCase):
       repo = SensorRepository(session)
 
       sensor_data = {
+        "device_id": self.device_ids[0],
         "presentation_name": "Test Name",
         "key_name": "test_key_name",
         "unit": "<unknow_unit>",
@@ -154,6 +223,7 @@ class TestSensorRepository_get(TestSensorRepository__init_instances):
 
       self.assertIsInstance(sensor, Sensor)
       self.assertEqual(sensor.id, sensor_id)
+      self.assertEqual(sensor.device_id, self.device_ids[0])
       self.assertEqual(sensor.presentation_name, "Sensor 1")
       self.assertEqual(sensor.key_name, "sensor_1")
       self.assertEqual(sensor.unit.name, "celsius")
@@ -243,6 +313,24 @@ class TestSensorRepository__update(TestSensorRepository__init_instances):
 
       self.assertEqual(updated_sensor.id, sensor_id)  # ID should not change
 
+  def test_update_can_update_device_id(self):
+    with next(get_session()) as session:
+      sensor_id = self.sensor_ids[0]
+      repo = SensorRepository(session)
+      prev_device_id = repo.get(sensor_id).device_id
+
+      update_data = {
+        "device_id": self.device_ids[1],
+      }
+
+      updated_sensor = repo.update(sensor_id, update_data)
+      session.commit()
+
+      self.assertIsInstance(updated_sensor, Sensor)
+      self.assertEqual(updated_sensor.id, sensor_id)
+      self.assertNotEqual(updated_sensor.device_id, prev_device_id)
+      self.assertEqual(updated_sensor.device_id, self.device_ids[1])
+
   def test_update_with_invalid_unit_raises_value_error(self):
     with next(get_session()) as session:
       sensor_id = self.sensor_ids[0]
@@ -314,3 +402,21 @@ class TestSensorRepository__delete(TestSensorRepository__init_instances):
 
       with self.assertRaises(Exception):
         repo.delete(999)  # Non-existing ID
+
+  def test_delete_device_cascades_delete_sensors(self):
+    with next(get_session()) as session:
+      device_id = self.device_ids[0]
+      repo = SensorRepository(session)
+
+      # Deletes Device
+      smt = select(Device).where(Device.id == device_id)
+      device = session.execute(smt).first()[0]
+      session.delete(device)
+      session.commit()
+
+      # Sensors must be deleted too
+      sensor1 = repo.get(self.sensor_ids[0])
+      sensor2 = repo.get(self.sensor_ids[1])
+
+      self.assertIsNone(sensor1)
+      self.assertIsNone(sensor2)

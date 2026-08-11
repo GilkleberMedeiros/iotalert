@@ -1,13 +1,17 @@
 import re
 import enum
-from typing import TypedDict
+from typing import TYPE_CHECKING, TypedDict
+from uuid import UUID
 
-from sqlalchemy import String, Enum
-from sqlalchemy.orm import Mapped, mapped_column, validates
+from sqlalchemy import ForeignKey, String, Enum
+from sqlalchemy.orm import Mapped, mapped_column, validates, relationship
 
 from app.models.base import BaseModel, ModelRepository
 from app.models.mixins import CreatedAtFieldMixin
 from app.models.available_units import UNITS
+
+if TYPE_CHECKING:
+  from app.models.device import Device
 
 
 UNITS_CHOICES = UNITS.keys()
@@ -16,11 +20,17 @@ UnitsEnum = enum.Enum("UnitsEnum", [c for c in UNITS_CHOICES])
 
 
 class Sensor(BaseModel, CreatedAtFieldMixin):
-  __tablename__ = "sensor"
+  __tablename__ = "sensors"
+
+  device_id: Mapped[UUID] = mapped_column(
+    (ForeignKey("devices.id", ondelete="CASCADE"))
+  )
 
   presentation_name: Mapped[str] = mapped_column(String(255))
   key_name: Mapped[str] = mapped_column(String(255), unique=True, index=True)
   unit: Mapped[enum.Enum] = mapped_column(Enum(UnitsEnum), nullable=False)
+
+  device: Mapped["Device"] = relationship(back_populates="sensors")
 
   @validates("presentation_name", "key_name")
   def validate_non_empty_string(self, key, value):
@@ -46,12 +56,14 @@ class Sensor(BaseModel, CreatedAtFieldMixin):
 
 
 class CreateSensorData(TypedDict):
+  device_id: str | UUID
   presentation_name: str
   key_name: str
   unit: str
 
 
 class UpdateSensorData(TypedDict, total=False):
+  device_id: str | UUID
   presentation_name: str
   key_name: str
   unit: str
