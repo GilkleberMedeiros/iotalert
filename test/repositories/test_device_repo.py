@@ -18,7 +18,11 @@ class TestDeviceRepository__init_instances(InMemoryDatabaseTestCase):
 
       device_data = [
         {"name": "Device 1", "location": "Location 1"},
-        {"name": "Device 2", "location": "Location 2", "status": "inactive"},
+        {
+          "name": "Device 2",
+          "location": "Location 2",
+          "status": Device.Status.ACTIVE,
+        },
       ]
 
       devices = await self.repo.create(device_data)
@@ -54,7 +58,7 @@ class TestDeviceRepository_create(InMemoryDatabaseTestCase):
       self.assertEqual(device.name, device_data["name"])
       self.assertEqual(device.location, device_data["location"])
       # Should set status as ACTIVE by default
-      self.assertEqual(device.status, Device.DeviceStatus.ACTIVE)
+      self.assertEqual(device.status, Device.Status.ACTIVE)
       self.assertIsNotNone(device.token_id)
       self.assertIsInstance(device.created_at, datetime)
       self.assertIsInstance(device.updated_at, datetime)
@@ -64,8 +68,16 @@ class TestDeviceRepository_create(InMemoryDatabaseTestCase):
       repo = DeviceRepository(session)
 
       devices_data = [
-        {"name": "Device 1", "location": "Location 1", "status": "active"},
-        {"name": "Device 2", "location": "Location 2", "status": "inactive"},
+        {
+          "name": "Device 1",
+          "location": "Location 1",
+          "status": "active",
+        },
+        {
+          "name": "Device 2",
+          "location": "Location 2",
+          "status": "inactive",
+        },
       ]
 
       devices = await repo.create(devices_data)
@@ -181,7 +193,7 @@ class TestDeviceRepository__update(TestDeviceRepository__init_instances):
       self.assertEqual(updated_device.id, device_id)
       self.assertEqual(updated_device.name, update_data["name"])
       self.assertEqual(updated_device.location, update_data["location"])
-      self.assertEqual(updated_device.status, update_data["status"])
+      self.assertEqual(updated_device.status, Device.Status(update_data["status"]))
 
   async def test_update_non_existing_device(self):
     async with get_session() as session:

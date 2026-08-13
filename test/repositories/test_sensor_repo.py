@@ -16,7 +16,7 @@ class TestSensorRepository__init_instances(InMemoryDatabaseTestCase):
     setup = await super().asyncSetUp()
     async with get_session() as session:
       self.repo = SensorRepository(session)
-      d_status = Device.DeviceStatus
+      d_status = Device.Status
       device_data = [
         {"name": "Device 1", "location": "SensorRepo Tests"},
         {
@@ -68,7 +68,7 @@ class TestSensorRepository_create(InMemoryDatabaseTestCase):
     setup = await super().asyncSetUp()
     async with get_session() as session:
       self.repo = SensorRepository(session)
-      d_status = Device.DeviceStatus
+      d_status = Device.Status
       device_data = [
         {"name": "Device 1", "location": "SensorRepo Tests"},
         {

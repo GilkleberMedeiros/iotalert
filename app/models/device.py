@@ -1,8 +1,9 @@
-from typing import TYPE_CHECKING, Literal, TypedDict, Union, Set
+import enum
+from typing import TYPE_CHECKING, Literal, TypedDict, Set
 from uuid import uuid4
 import secrets
 
-from sqlalchemy import String, UUID
+from sqlalchemy import String, UUID, Enum
 from sqlalchemy.orm import Mapped, mapped_column, validates, declared_attr, relationship
 
 from app.models.base import BaseModel, ModelRepository
@@ -15,20 +16,17 @@ if TYPE_CHECKING:
 class Device(BaseModel, CreatedAtFieldMixin, UpdatedAtFieldMixin):
   __tablename__ = "devices"
 
-  class DeviceStatus:
-    ACTIVE = "active"
-    INACTIVE = "inactive"
-    ANOMALY = "anomaly"
-    ACTIVE_T = Literal["active"]
-    INACTIVE_T = Literal["inactive"]
-    ANOMALY_T = Literal["anomaly"]
+  class Status(enum.Enum):
+    ACTIVE: Literal["active"] = "active"
+    INACTIVE: Literal["inactive"] = "inactive"
+    ANOMALY: Literal["anomaly"] = "anomaly"
 
   name: Mapped[str] = mapped_column(String(255))
   location: Mapped[str] = mapped_column(String(255))
 
-  status: Mapped[
-    Union[DeviceStatus.ACTIVE_T, DeviceStatus.INACTIVE_T, DeviceStatus.ANOMALY_T]
-  ] = mapped_column(String(40), default=DeviceStatus.ACTIVE, nullable=False)
+  status: Mapped[enum.Enum] = mapped_column(
+    Enum(Status), default=Status.ACTIVE, nullable=False
+  )
   token_id: Mapped[str] = mapped_column(
     default=lambda: "device_token_" + secrets.token_urlsafe(64), unique=True, index=True
   )
@@ -51,35 +49,35 @@ class Device(BaseModel, CreatedAtFieldMixin, UpdatedAtFieldMixin):
 
   @validates("status")
   def validate_status(self, key, value):
-    valid_statuses = {
-      self.DeviceStatus.ACTIVE,
-      self.DeviceStatus.INACTIVE,
-      self.DeviceStatus.ANOMALY,
-    }
+    # Accept a Device.Status enum member or a string (case-insensitive)
+    if isinstance(value, self.Status):
+      return value
 
-    if value not in valid_statuses:
-      raise ValueError(f"{key} must be one of DeviceStatus values.")
-    return value
+    if isinstance(value, str):
+      valid_values = {s.value for s in self.Status}
+      valid_names = {s.name for s in self.Status}
+      valid_statuses = {*valid_names, *valid_values}
+
+      if value not in valid_statuses:
+        raise ValueError(f"{key} must be one of: {valid_values}")
+
+      return self.Status[value.upper()]
+
+    raise ValueError(
+      f"{key} must be a Device.Status or string. Got {type(value)} instead."
+    )
 
 
 class CreateDeviceData(TypedDict):
   name: str
   location: str
-  status: Union[
-    Device.DeviceStatus.ACTIVE_T,
-    Device.DeviceStatus.INACTIVE_T,
-    Device.DeviceStatus.ANOMALY_T,
-  ]
+  status: str | Device.Status
 
 
 class UpdateDeviceData(TypedDict, total=False):
   name: str
   location: str
-  status: Union[
-    Device.DeviceStatus.ACTIVE_T,
-    Device.DeviceStatus.INACTIVE_T,
-    Device.DeviceStatus.ANOMALY_T,
-  ]
+  status: str | Device.Status
 
 
 class DeviceRepository(ModelRepository[Device, CreateDeviceData, UpdateDeviceData]):
