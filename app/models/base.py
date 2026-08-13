@@ -15,6 +15,7 @@ class BaseModel(Base, IDFieldMixin):
 
 class ModelRepository[T: BaseModel, CreateData: dict, UpdateData: dict]:
   model: type[T] = None
+  FORBID_ID_FIELD_ON_UPDATE: bool = True
 
   def __init__(self, session: AsyncSession):
     if self.model is None:
@@ -26,7 +27,13 @@ class ModelRepository[T: BaseModel, CreateData: dict, UpdateData: dict]:
     if not isinstance(data, list):
       data = [data]
 
-    instances = [self.model(**d) for d in data]
+    def f(d: CreateData):
+      """Filter forbiden fields on creation."""
+      return dict(
+        filter(lambda pair: pair[0] not in self.FORBIDEN_CREATE_FIELDS, d.items())
+      )
+
+    instances = [self.model(**f(d)) for d in data]
 
     self._session.add_all(instances)
 
@@ -50,7 +57,7 @@ class ModelRepository[T: BaseModel, CreateData: dict, UpdateData: dict]:
     instance = await self._session.get_one(self.model, id)
 
     for k, v in data.items():
-      if k == "id":
+      if k in self.FORBIDEN_UPDATE_FIELDS:
         continue
 
       if k in instance.__table__.columns:
@@ -62,3 +69,14 @@ class ModelRepository[T: BaseModel, CreateData: dict, UpdateData: dict]:
   async def delete(self, id):
     instance = await self._session.get_one(self.model, id)
     await self._session.delete(instance)
+
+  @property
+  def FORBIDEN_CREATE_FIELDS(self) -> set[str]:
+    return {}
+
+  @property
+  def FORBIDEN_UPDATE_FIELDS(self) -> set[str]:
+    if self.FORBID_ID_FIELD_ON_UPDATE:
+      return {"id"}
+
+    return {}
