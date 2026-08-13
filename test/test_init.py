@@ -4,7 +4,7 @@ Initialization tests.
 
 from unittest import TestCase
 from fastapi.testclient import TestClient
-from sqlalchemy import Engine
+from sqlalchemy.ext.asyncio import AsyncEngine
 
 from app.main import app
 
@@ -23,4 +23,4 @@ class TestAppInitTestCase(TestCase):
   def test_can_get_db_engine(self):
     from app.db import engine
 
-    self.assertIsInstance(engine, Engine)
+    self.assertIsInstance(engine, AsyncEngine)

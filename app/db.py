@@ -1,23 +1,28 @@
-from sqlalchemy import create_engine
-from sqlalchemy.orm import Session
+from contextlib import asynccontextmanager
+
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 from app.models import __MODELS__  # noqa: F401
 from app.models.base import Base
 
 
-engine = create_engine("sqlite://")
-
-Base.metadata.create_all(engine)
+engine = create_async_engine("sqlite+aiosqlite://")
 
 
-def get_session():
-  session = Session(engine)
+async def init_db():
+  async with engine.begin() as conn:
+    await conn.run_sync(Base.metadata.create_all)
+
+
+@asynccontextmanager
+async def get_session():
+  session = AsyncSession(engine, expire_on_commit=False)
 
   try:
     yield session
-    session.commit()
+    await session.commit()
   except:
-    session.rollback()
+    await session.rollback()
     raise
   finally:
-    session.close()
+    await session.close()
