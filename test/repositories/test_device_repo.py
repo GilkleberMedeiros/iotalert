@@ -1,4 +1,5 @@
 from datetime import datetime
+import uuid
 
 from sqlalchemy import delete
 
@@ -142,9 +143,20 @@ class TestDeviceRepository_get(TestDeviceRepository__init_instances):
     async with get_session() as session:
       repo = DeviceRepository(session)
 
-      device = await repo.get(999)  # Non-existing ID
+      device = await repo.get(uuid.uuid4())  # Non-existing ID
 
       self.assertIsNone(device)
+
+  async def test_get_can_receive_str_as_id(self):
+    async with get_session() as session:
+      device_id = self.device_ids[0]
+      repo = DeviceRepository(session)
+
+      # Get the first device created in setUp
+      device = await repo.get(str(device_id))
+
+      self.assertIsInstance(device, Device)
+      self.assertEqual(device.id, device_id)
 
 
 class TestDeviceRepository__list(TestDeviceRepository__init_instances):
@@ -222,6 +234,22 @@ class TestDeviceRepository__update(TestDeviceRepository__init_instances):
 
       self.assertEqual(updated_device.id, device_id)  # ID should not change
 
+  async def test_update_can_receive_id_as_str(self):
+    async with get_session() as session:
+      device_id = self.device_ids[0]
+      repo = DeviceRepository(session)
+
+      update_data = {
+        "name": "Updated Device Name",
+      }
+
+      updated_device = await repo.update(str(device_id), update_data)
+      await session.commit()
+
+      self.assertIsInstance(updated_device, Device)
+      self.assertEqual(updated_device.id, device_id)
+      self.assertEqual(updated_device.name, update_data["name"])
+
   async def test_update_with_invalid_status(self):
     async with get_session() as session:
       device_id = self.device_ids[0]
@@ -292,3 +320,16 @@ class TestDeviceRepository__delete(TestDeviceRepository__init_instances):
 
       with self.assertRaises(Exception):
         await repo.delete(999)  # Non-existing ID
+
+  async def test_delete_can_receive_id_as_str(self):
+    async with get_session() as session:
+      device_id = self.device_ids[0]
+      repo = DeviceRepository(session)
+
+      await repo.delete(str(device_id))
+      await session.commit()
+
+      deleted_device = await repo.get(device_id)
+      remaining_devices = await repo.list()
+      self.assertIsNone(deleted_device)
+      self.assertEqual(len(remaining_devices.all()), 1)

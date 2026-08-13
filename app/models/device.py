@@ -1,6 +1,7 @@
 import enum
 from typing import TYPE_CHECKING, Literal, TypedDict, Set
 from uuid import uuid4
+import uuid
 import secrets
 
 from sqlalchemy import String, UUID, Enum
@@ -82,4 +83,31 @@ class UpdateDeviceData(TypedDict, total=False):
 
 class DeviceRepository(ModelRepository[Device, CreateDeviceData, UpdateDeviceData]):
   model = Device
-  pass
+
+  async def get(self, id: uuid.UUID | str):
+    id = self._parse_id(id)
+
+    return await super().get(id)
+
+  async def update(self, id: uuid.UUID | str, data):
+    id = self._parse_id(id)
+
+    return await super().update(id, data)
+
+  async def delete(self, id: uuid.UUID | str):
+    id = self._parse_id(id)
+
+    return await super().delete(id)
+
+  @staticmethod
+  def _parse_id(id: uuid.UUID | str):
+    if isinstance(id, str):
+      try:
+        id = uuid.UUID(id)
+      except Exception:
+        raise ValueError("id must be a valid UUID. Given string isn't a valid UUID.")
+
+    if not isinstance(id, uuid.UUID):
+      raise ValueError("id must be an UUID or a valid UUID string.")
+
+    return id
