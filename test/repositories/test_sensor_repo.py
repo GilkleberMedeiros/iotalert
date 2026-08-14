@@ -2,13 +2,12 @@ from datetime import datetime
 
 from sqlalchemy import select, delete
 
-from app.db import get_session
 from app.models.device import Device
 from app.models.sensor import (
   Sensor,
   SensorRepository,
 )
-from test.conftest import InMemoryDatabaseTestCase
+from test.conftest import InMemoryDatabaseTestCase, get_session
 
 
 class TestSensorRepository__init_instances(InMemoryDatabaseTestCase):

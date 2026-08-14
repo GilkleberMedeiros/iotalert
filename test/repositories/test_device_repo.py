@@ -3,12 +3,11 @@ import uuid
 
 from sqlalchemy import delete
 
-from app.db import get_session
 from app.models.device import (
   Device,
   DeviceRepository,
 )
-from test.conftest import InMemoryDatabaseTestCase
+from test.conftest import InMemoryDatabaseTestCase, get_session
 
 
 class TestDeviceRepository__init_instances(InMemoryDatabaseTestCase):

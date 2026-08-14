@@ -1,12 +1,23 @@
+from contextlib import asynccontextmanager
 from unittest import IsolatedAsyncioTestCase
 from unittest.mock import patch
 
 from sqlalchemy.ext.asyncio import create_async_engine
 
+from app.db import get_session as get_db
 from app.models import __MODELS__  # noqa: F401
 from app.models.base import Base
 
 test_engine = create_async_engine("sqlite+aiosqlite:///:memory:")
+
+
+@asynccontextmanager
+async def get_session():
+  """
+  Async Context Manager wrapper around the original get_session generator function.
+  """
+  gen = get_db()
+  yield await anext(gen)
 
 
 class InMemoryDatabaseTestCase(IsolatedAsyncioTestCase):

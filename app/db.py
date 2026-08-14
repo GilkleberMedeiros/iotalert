@@ -1,5 +1,6 @@
-from contextlib import asynccontextmanager
+from typing import Annotated
 
+from fastapi import Depends
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 
 from app.models import __MODELS__  # noqa: F401
@@ -14,7 +15,6 @@ async def init_db():
     await conn.run_sync(Base.metadata.create_all)
 
 
-@asynccontextmanager
 async def get_session():
   session = AsyncSession(engine, expire_on_commit=False)
 
@@ -26,3 +26,6 @@ async def get_session():
     raise
   finally:
     await session.close()
+
+
+SessionDep = Annotated[AsyncSession, Depends(get_session)]
