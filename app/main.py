@@ -2,10 +2,14 @@ from fastapi import FastAPI
 import uvicorn
 
 from app.db import init_db
+from app.routes.devices import router as devices_router
+
 
 app = FastAPI(
   title="IoTAlert", summary="API de Telemetria industrial. (Projeto Pessoal)"
 )
+
+app.include_router(devices_router)
 
 
 @app.get("/ping")
