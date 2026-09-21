@@ -184,6 +184,38 @@ class TestDeviceRepository__list(TestDeviceRepository__init_instances):
       self.assertIsInstance(devices, list)
       self.assertEqual(len(devices), 0)
 
+  async def test_list_pagination_offset(self):
+    async with get_session() as session:
+      # Add more devices first
+      devices = [
+        Device(name=f"Device {i}", location=f"Test Location {i}") for i in range(3, 21)
+      ]
+      session.add_all(devices)
+      await session.commit()
+
+      repo = DeviceRepository(session)
+      listed_devices = (await repo.list({"offset": 10})).all()
+
+      self.assertIsInstance(listed_devices, list)
+      self.assertEqual(len(listed_devices), 10)
+      self.assertEqual(listed_devices[0].name, "Device 11")
+
+  async def test_list_pagination_limit(self):
+    async with get_session() as session:
+      # Add more devices first
+      devices = [
+        Device(name=f"Device {i}", location=f"Test Location {i}") for i in range(3, 21)
+      ]
+      session.add_all(devices)
+      await session.commit()
+
+      repo = DeviceRepository(session)
+      listed_devices = (await repo.list({"limit": 10})).all()
+
+      self.assertIsInstance(listed_devices, list)
+      self.assertEqual(len(listed_devices), 10)
+      self.assertEqual(listed_devices[0].name, "Device 1")
+
 
 class TestDeviceRepository__update(TestDeviceRepository__init_instances):
   async def test_update_existing_device(self):

@@ -1,3 +1,5 @@
+from typing import NotRequired, TypedDict
+
 from sqlalchemy.orm import DeclarativeBase
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncAttrs
 from sqlalchemy import select
@@ -11,6 +13,11 @@ class Base(AsyncAttrs, DeclarativeBase):
 
 class BaseModel(Base, IDFieldMixin):
   __abstract__ = True
+
+
+class ListPagination(TypedDict):
+  limit: NotRequired[int]
+  offset: NotRequired[int]
 
 
 class ModelRepository[T: BaseModel, CreateData: dict, UpdateData: dict]:
@@ -47,8 +54,16 @@ class ModelRepository[T: BaseModel, CreateData: dict, UpdateData: dict]:
 
     return result
 
-  async def list(self):
+  async def list(self, pagination: ListPagination = ...):
     smt = select(self.model)
+
+    if pagination is not ...:
+      offset = pagination.get("offset", -1)
+      limit = pagination.get("limit", -1)
+
+      smt = smt.offset(offset) if offset >= 0 else smt
+      smt = smt.limit(limit) if limit >= 0 else smt
+
     result = await self._session.scalars(smt)
 
     return result
