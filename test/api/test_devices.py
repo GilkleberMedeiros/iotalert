@@ -190,7 +190,7 @@ class TestDevicesEndpointTestCase__list(InitDevicesFixture):
 class TestDevicesEndpointTestCase__update(InitDevicesFixture):
   async def test_can_update_device(self):
     device_id = str(self.devices_ids[0])
-    update_data = {"name": "Updated Name", "status": "inactive"}
+    update_data = {"name": "Updated Name"}
 
     response = api_client.patch(f"/{device_id}", json=update_data)
     status_code = response.status_code
@@ -199,11 +199,10 @@ class TestDevicesEndpointTestCase__update(InitDevicesFixture):
     device = response.json()
     self.assertEqual(device["id"], device_id)
     self.assertEqual(device["name"], update_data["name"])
-    self.assertEqual(device["status"], update_data["status"])
 
   async def test_cant_update_inexistent_device(self):
     device_id = str(uuid.uuid4())
-    update_data = {"name": "Updated Name", "status": "inactive"}
+    update_data = {"name": "Updated Name"}
 
     response = api_client.patch(f"/{device_id}", json=update_data)
     status_code = response.status_code
@@ -240,41 +239,18 @@ class TestDevicesEndpointTestCase__update(InitDevicesFixture):
     self.assertIsInstance(content2, dict)
     self.assertIsNotNone(content2.get("detail", None))
 
-    # Empty Status
-
-    update_data3 = {"status": ""}
-
-    response3 = api_client.patch(f"/{device_id}", json=update_data3)
-    status_code3 = response3.status_code
-
-    self.assertEqual(status_code3, 422)
-    content3 = response3.json()
-    self.assertIsInstance(content3, dict)
-    self.assertIsNotNone(content3.get("detail", None))
-
-  async def test_cant_update_device_with_anomaly_status(self):
+  async def test_cant_update_device_status(self):
     device_id = str(self.devices_ids[0])
-    update_data = {"status": Device.Status["ANOMALY"].value}
+    update_data = {"name": "Updated Name", "status": "inactive"}
 
     response = api_client.patch(f"/{device_id}", json=update_data)
     status_code = response.status_code
 
-    self.assertEqual(status_code, 422)
+    self.assertEqual(status_code, 200)
     content = response.json()
     self.assertIsInstance(content, dict)
-    self.assertIsNotNone(content.get("detail", None))
-
-  async def test_cant_update_device_with_invalid_status(self):
-    device_id = str(self.devices_ids[0])
-    update_data = {"status": "invalid_status"}
-
-    response = api_client.patch(f"/{device_id}", json=update_data)
-    status_code = response.status_code
-
-    self.assertEqual(status_code, 422)
-    content = response.json()
-    self.assertIsInstance(content, dict)
-    self.assertIsNotNone(content.get("detail", None))
+    self.assertEqual(content.get("name"), "Updated Name")
+    self.assertEqual(content.get("status"), "active")  # Didn't change
 
 
 class TestDevicesEndpointTestCase__delete(InitDevicesFixture):
@@ -300,6 +276,92 @@ class TestDevicesEndpointTestCase__delete(InitDevicesFixture):
     device_id = str(uuid.uuid4())
 
     response = api_client.delete(url=f"/{device_id}")
+    status_code = response.status_code
+
+    self.assertEqual(status_code, 404)
+    content = response.json()
+    self.assertIsInstance(content, dict)
+    self.assertIsNotNone(content.get("detail", None))
+
+
+class TestDevicesEndpointTestCase__activate(InitDevicesFixture):
+  async def test_can_activate_device(self):
+    device_id = self.devices_ids[1]
+
+    response = api_client.patch(f"/activate/{device_id}")
+    status_code = response.status_code
+
+    self.assertEqual(status_code, 200)
+    content = response.json()
+    self.assertIsInstance(content, dict)
+    self.assertIsNotNone(content.get("detail", None))
+
+    # Verify on database
+    async with get_session() as session:
+      repo = DeviceRepository(session)
+      device = await repo.get(device_id)
+
+      self.assertIsNotNone(device)
+      self.assertEqual(device.status.value, "active")
+
+  async def test_can_activate_device_already_activated(self):
+    device_id = self.devices_ids[0]
+
+    response = api_client.patch(f"/activate/{device_id}")
+    status_code = response.status_code
+
+    self.assertEqual(status_code, 200)
+    content = response.json()
+    self.assertIsInstance(content, dict)
+    self.assertIsNotNone(content.get("detail", None))
+
+  async def test_cant_activate_inexistent_device(self):
+    device_id = str(uuid.uuid4())
+
+    response = api_client.patch(f"/activate/{device_id}")
+    status_code = response.status_code
+
+    self.assertEqual(status_code, 404)
+    content = response.json()
+    self.assertIsInstance(content, dict)
+    self.assertIsNotNone(content.get("detail", None))
+
+
+class TestDevicesEndpointTestCase__inactivate(InitDevicesFixture):
+  async def test_can_inactivate_device(self):
+    device_id = self.devices_ids[1]
+
+    response = api_client.patch(f"/inactivate/{device_id}")
+    status_code = response.status_code
+
+    self.assertEqual(status_code, 200)
+    content = response.json()
+    self.assertIsInstance(content, dict)
+    self.assertIsNotNone(content.get("detail", None))
+
+    # Verify on database
+    async with get_session() as session:
+      repo = DeviceRepository(session)
+      device = await repo.get(device_id)
+
+      self.assertIsNotNone(device)
+      self.assertEqual(device.status.value, "inactive")
+
+  async def test_can_inactivate_device_already_inactivated(self):
+    device_id = self.devices_ids[0]
+
+    response = api_client.patch(f"/inactivate/{device_id}")
+    status_code = response.status_code
+
+    self.assertEqual(status_code, 200)
+    content = response.json()
+    self.assertIsInstance(content, dict)
+    self.assertIsNotNone(content.get("detail", None))
+
+  async def test_cant_inactivate_inexistent_device(self):
+    device_id = str(uuid.uuid4())
+
+    response = api_client.patch(f"/inactivate/{device_id}")
     status_code = response.status_code
 
     self.assertEqual(status_code, 404)

@@ -40,4 +40,3 @@ class UpdateDeviceSchema(BaseModel):
 
   name: str | None = None
   location: str | None = None
-  status: DeviceStatus | None = None

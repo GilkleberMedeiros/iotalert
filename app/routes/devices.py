@@ -81,3 +81,29 @@ async def delete_device(device_id: str, session: SessionDep):
     return {"detail": "Device with given id was deleted.", "success": True}
   except NoResultFound:
     raise APIError(status_code=404, detail="Couldn't find device with the given id.")
+
+
+@router.patch("/activate/{device_id}")
+async def activate_device(device_id: str, session: SessionDep):
+  try:
+    repo = DeviceRepository(session)
+
+    await repo.update(device_id, {"status": Device.Status.ACTIVE})
+    await session.commit()
+
+    return {"detail": "Device with given id was activated.", "success": True}
+  except NoResultFound:
+    raise APIError(404, detail="Couldn't find device with the given id.")
+
+
+@router.patch("/inactivate/{device_id}")
+async def inactivate_device(device_id: str, session: SessionDep):
+  try:
+    repo = DeviceRepository(session)
+
+    await repo.update(device_id, {"status": Device.Status.INACTIVE})
+    await session.commit()
+
+    return {"detail": "Device with given id was inactivated.", "success": True}
+  except NoResultFound:
+    raise APIError(404, detail="Couldn't find device with the given id.")
