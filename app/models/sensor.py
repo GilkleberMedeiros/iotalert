@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 UNITS_CHOICES = UNITS.keys()
 
-UnitsEnum = enum.Enum("UnitsEnum", [c for c in UNITS_CHOICES])
+UnitsEnum = enum.Enum("UnitsEnum", {c: c for c in UNITS_CHOICES})
 
 
 class Sensor(BaseModel, CreatedAtFieldMixin):
