@@ -16,6 +16,10 @@ class DeviceSchema(BaseModel):
   updated_at: datetime
 
 
+class CreateDeviceResSchema(DeviceSchema):
+  token_id: str
+
+
 EXCLUDED_STATUS = {"anomaly"}
 DeviceStatus = enum.Enum(
   "DeviceStatus",

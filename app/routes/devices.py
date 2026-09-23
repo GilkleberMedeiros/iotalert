@@ -4,7 +4,12 @@ from sqlalchemy.exc import NoResultFound
 from app.db import SessionDep
 from app.errors import APIError
 from app.models.device import Device, DeviceRepository
-from app.schemas.devices import CreateDeviceSchema, DeviceSchema, UpdateDeviceSchema
+from app.schemas.devices import (
+  CreateDeviceSchema,
+  CreateDeviceResSchema,
+  DeviceSchema,
+  UpdateDeviceSchema,
+)
 
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
@@ -13,11 +18,11 @@ router = APIRouter(prefix="/devices", tags=["Devices"])
 @router.post(
   path="",
   status_code=201,
-  response_model=DeviceSchema,
+  response_model=CreateDeviceResSchema,
 )
 async def create_device(
   device: CreateDeviceSchema, session: SessionDep
-) -> DeviceSchema:
+) -> CreateDeviceResSchema:
   try:
     repo = DeviceRepository(session)
     created: Device = await repo.create(device.model_dump())

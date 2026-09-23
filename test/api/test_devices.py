@@ -49,6 +49,7 @@ class TestDevicesEndpointTestCase__create(InMemoryDatabaseTestCase):
     self.assertEqual(device["name"], device_data["name"])
     self.assertEqual(device["location"], device_data["location"])
     self.assertEqual(device["status"], "active")
+    self.assertIsInstance(device["token_id"], str)
     self.assertIsNotNone(device.get("created_at", None))
     self.assertIsNotNone(device.get("updated_at", None))
 
