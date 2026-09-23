@@ -1,0 +1,8 @@
+- [X] Implementar views de criação, leitura, atualização, deleção e ativação/desativação do model Device. 
+- [X] Implementar os testes das views do model Device. 
+- [X] Implementar o retorno api_key (device token_id) na view de criação do dispositivo (e apenas na criação). 
+- [X] Refatorar os testes da view de criação para testar o retorno do token_id. 
+- [ ] Implementar views de criação, leitura, atualização e deleção de sensores. 
+- [ ] Implementar os testes das views do model Sensor. 
+- [ ] Refatorar view de criação do Device para permitir associação/criação de sensores na criação do dispositivo. 
+- [ ] Refatorar os testes para a view de criação do Device. 
