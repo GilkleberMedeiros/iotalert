@@ -3,6 +3,7 @@ import uvicorn
 
 from app.db import init_db
 from app.routes.devices import router as devices_router
+from app.routes.sensors import router as sensors_router
 
 
 app = FastAPI(
@@ -10,6 +11,7 @@ app = FastAPI(
 )
 
 app.include_router(devices_router)
+app.include_router(sensors_router)
 
 
 @app.get("/ping")
