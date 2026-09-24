@@ -1,4 +1,6 @@
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Query
 from sqlalchemy.exc import NoResultFound
 
 from app.db import SessionDep
@@ -10,6 +12,7 @@ from app.schemas.devices import (
   DeviceSchema,
   UpdateDeviceSchema,
 )
+from app.schemas.params import PaginationParams
 
 
 router = APIRouter(prefix="/devices", tags=["Devices"])
@@ -50,11 +53,13 @@ async def get_device(device_id: str, session: SessionDep) -> DeviceSchema:
 
 
 @router.get("")
-async def list_devices(session: SessionDep) -> list[DeviceSchema]:
+async def list_devices(
+  pagination: Annotated[PaginationParams, Query()], session: SessionDep
+) -> list[DeviceSchema]:
   try:
     repo = DeviceRepository(session)
 
-    return (await repo.list()).all()
+    return (await repo.list(pagination.model_dump())).all()
   except:
     raise
 

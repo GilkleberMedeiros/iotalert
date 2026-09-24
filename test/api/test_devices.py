@@ -163,7 +163,6 @@ class TestDevicesEndpointTestCase__get(InitDevicesFixture):
 
 class TestDevicesEndpointTestCase__list(InitDevicesFixture):
   async def test_can_list_devices(self):
-
     response = api_client.get("")
     status_code = response.status_code
 
@@ -186,6 +185,16 @@ class TestDevicesEndpointTestCase__list(InitDevicesFixture):
     devices = response.json()
     self.assertIsInstance(devices, list)
     self.assertEqual(len(devices), 0)
+
+  async def test_list_devices_paginated(self):
+    response = api_client.get("?offset=1")
+    status_code = response.status_code
+
+    self.assertEqual(status_code, 200)
+    devices = response.json()
+    self.assertIsInstance(devices, list)
+    self.assertEqual(len(devices), 1)
+    self.assertEqual(devices[0]["id"], str(self.devices_ids[1]))
 
 
 class TestDevicesEndpointTestCase__update(InitDevicesFixture):
