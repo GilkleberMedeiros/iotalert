@@ -1,12 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Depends
 from sqlalchemy.exc import NoResultFound
 
 from app.db import SessionDep
 from app.errors import APIError
 from app.models.device import DeviceRepository
-from app.models.sensor import SensorRepository
+from app.models.sensor import Sensor, SensorRepository
 from app.schemas.params import PaginationParams
 from app.schemas.sensors import CreateSensorSchema, UpdateSensorSchema, SensorSchema
 
@@ -41,10 +41,14 @@ async def create_sensor(
 
 
 @router.get("/{sensor_id}", response_model=SensorSchema)
-async def get_sensor(sensor_id: str, session: SessionDep) -> SensorSchema:
+async def get_sensor(
+  sensor_id: str,
+  session: SessionDep,
+  include_device: bool = True,
+) -> SensorSchema:
   try:
     repo = SensorRepository(session)
-    sensor = await repo.get(sensor_id)
+    sensor = await repo.get(sensor_id, [Sensor.device] if include_device else ...)
 
     if sensor is None:
       raise APIError(status_code=404, detail="Sensor was't found by given id.")
@@ -58,12 +62,16 @@ async def get_sensor(sensor_id: str, session: SessionDep) -> SensorSchema:
 
 @router.get("")
 async def list_sensors(
-  pagination: Annotated[PaginationParams, Query()], session: SessionDep
+  session: SessionDep,
+  pagination: Annotated[PaginationParams, Depends()],
+  include_devices: bool = False,
 ) -> list[SensorSchema]:
   try:
     repo = SensorRepository(session)
+    page_data = pagination.model_dump()
+    related = [Sensor.device] if include_devices else ...
 
-    return (await repo.list(pagination.model_dump())).all()
+    return (await repo.list(page_data, related)).all()
   except:
     raise
 

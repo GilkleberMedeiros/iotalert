@@ -7,6 +7,6 @@
 - [X] Refatorar view de listagem dos dispositivos para adicionar paginação e adicionar teste para assegurar a funcionalidade. 
 - [ ] Refatorar view de criação e atualização do sensor para adicionar cache persistente da grandeza de cada sensor (sensor.key_name: sensor.unit) (adicionar Redis com armazenamento persistente) (usar classe Service para encapsular complexidade, não implementar testes específicos para a classe service). 
 - [ ] Implementar testes para garantir que os pares key_name:unit estão sendo armazenados de forma persistente no Redis. 
-- [ ] Refatorar SensorSchema e views de criação, visualização, listagem e atualização para retornar dados do dispositivo associado. 
+- [X] Refatorar SensorSchema e views de criação, visualização, listagem e atualização para retornar dados do dispositivo associado. 
 - [ ] Refatorar view de criação do Device para permitir associação/criação de sensores na criação do dispositivo. 
 - [ ] Refatorar os testes para a view de criação do Device. 

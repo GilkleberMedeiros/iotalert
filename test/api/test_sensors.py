@@ -212,6 +212,35 @@ class TestSensorsEndpointTestCase__get(InitSensorsFixture):
     self.assertIsInstance(content, dict)
     self.assertIsNotNone(content.get("detail", None))
 
+  async def test_get_include_device(self):
+    sensor_id = self.sensors_ids[0]
+
+    # Include device by default
+    response = api_client.get(url=f"/{sensor_id}")
+    status_code = response.status_code
+
+    self.assertEqual(status_code, 200)
+    sensor = response.json()
+    self.assertIsInstance(sensor, dict)
+    self.assertEqual(sensor["id"], self.sensors_ids[0])
+    self.assertEqual(sensor["presentation_name"], "Consumo")
+    self.assertIsNotNone(sensor.get("device", None))
+    self.assertEqual(sensor["device"]["name"], "Device 1")
+
+  async def test_get_doesnot_include_device(self):
+    sensor_id = self.sensors_ids[0]
+
+    # Pass ?include_device=false
+    response = api_client.get(url=f"/{sensor_id}?include_device=false")
+    status_code = response.status_code
+
+    self.assertEqual(status_code, 200)
+    sensor = response.json()
+    self.assertIsInstance(sensor, dict)
+    self.assertEqual(sensor["id"], self.sensors_ids[0])
+    self.assertEqual(sensor["presentation_name"], "Consumo")
+    self.assertIsNone(sensor.get("device", None))
+
 
 class TestSensorsEndpointTestCase__list(InitSensorsFixture):
   async def test_can_list_sensors(self):
@@ -250,6 +279,30 @@ class TestSensorsEndpointTestCase__list(InitSensorsFixture):
     self.assertEqual(len(sensors), 2)
     self.assertEqual(sensors[0]["id"], self.sensors_ids[1])
     self.assertEqual(sensors[1]["id"], self.sensors_ids[2])
+
+  async def test_list_doesnot_include_devices(self):
+    response = api_client.get("")
+    status_code = response.status_code
+
+    self.assertEqual(status_code, 200)
+    sensors = response.json()
+    self.assertIsInstance(sensors, list)
+    self.assertEqual(len(sensors), 3)
+    self.assertEqual(sensors[0]["id"], self.sensors_ids[0])
+    self.assertIsNone(sensors[0].get("device", None))
+
+  async def test_list_include_devices(self):
+    response = api_client.get("?include_devices=true")
+    status_code = response.status_code
+
+    self.assertEqual(status_code, 200)
+    sensors = response.json()
+    self.assertIsInstance(sensors, list)
+    self.assertEqual(len(sensors), 3)
+    self.assertEqual(sensors[0]["id"], self.sensors_ids[0])
+    self.assertIsNotNone(sensors[0].get("device", None))
+    self.assertEqual(sensors[0]["device"]["id"], str(self.devices_ids[0]))
+    self.assertEqual(sensors[0]["device"]["name"], "Device 1")
 
 
 class TestSensorsEndpointTestCase__update(InitSensorsFixture):
