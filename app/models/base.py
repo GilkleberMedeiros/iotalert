@@ -1,8 +1,8 @@
-from typing import NotRequired, TypedDict
+from typing import Iterable, NotRequired, TypedDict
 
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, selectinload
 from sqlalchemy.ext.asyncio import AsyncSession, AsyncAttrs
-from sqlalchemy import select
+from sqlalchemy import select, Select
 
 from app.models.mixins import IDFieldMixin
 
@@ -46,16 +46,24 @@ class ModelRepository[T: BaseModel, CreateData: dict, UpdateData: dict]:
 
     return instances if len(instances) > 1 else instances[0]
 
-  async def get(self, id) -> T | None:
+  async def get(self, id, preload_related: Iterable[BaseModel] = ...) -> T | None:
     model = self.model
     smt = select(model).where(model.id == id)
+
+    if preload_related is not ...:
+      smt = self._preload_related(smt, preload_related)
 
     result = await self._session.scalar(smt)
 
     return result
 
-  async def list(self, pagination: ListPagination = ...):
+  async def list(
+    self, pagination: ListPagination = ..., preload_related: Iterable[BaseModel] = ...
+  ):
     smt = select(self.model)
+
+    if preload_related is not ...:
+      smt = self._preload_related(smt, preload_related)
 
     if pagination is not ...:
       offset = pagination.get("offset", -1)
@@ -84,6 +92,14 @@ class ModelRepository[T: BaseModel, CreateData: dict, UpdateData: dict]:
   async def delete(self, id):
     instance = await self._session.get_one(self.model, id)
     await self._session.delete(instance)
+
+  @staticmethod
+  def _preload_related(smt: Select, preload_list: Iterable[BaseModel]):
+    preload = set(preload_list)
+    for p in preload:
+      smt = smt.options(selectinload(p))
+
+    return smt
 
   @property
   def FORBIDEN_CREATE_FIELDS(self) -> set[str]:
